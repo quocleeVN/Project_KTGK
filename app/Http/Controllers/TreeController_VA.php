@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -87,8 +86,7 @@ class TreeController_VA extends Controller
         }
 
         try {
-            Config::set('mail.default', env('MAIL_MAILER', 'smtp'));
-            Mail::mailer('smtp')->to($user->email)->send(new OrderConfirmation($user, $cart, $total));
+            Mail::to($user->email)->send(new OrderConfirmation($user, $cart, $total));
         } catch (\Exception $e) {
             Log::error('Order email failed', [
                 'message' => $e->getMessage(),
