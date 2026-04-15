@@ -4,6 +4,8 @@ use App\Http\Controllers\HomeController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index']);
+Route::get('caycanh/theloai/{id}', [HomeController::class, 'theloai']);
+Route::post('/timkiem', [HomeController::class, 'timkiem']);
 
 
 Route::get('/dashboard', function () {
@@ -12,4 +14,4 @@ Route::get('/dashboard', function () {
 
 
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
