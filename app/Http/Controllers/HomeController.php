@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
 
 class HomeController extends Controller
@@ -117,6 +118,45 @@ class HomeController extends Controller
         }
 
         return view('caycanh.quanly');
+    }
+
+    public function themSanPham()
+    {
+        return view('caycanh.them');
+    }
+
+    public function luuSanPham(Request $request)
+    {
+        $validated = $request->validate([
+            'ten_san_pham' => 'required|string|max:255',
+            'ten_khoa_hoc' => 'required|string|max:255',
+            'ten_thong_thuong' => 'required|string|max:255',
+            'mo_ta' => 'required|string',
+            'do_kho' => 'required|string|max:255',
+            'yeu_cau_anh_sang' => 'required|string|max:255',
+            'nhu_cau_nuoc' => 'required|string|max:255',
+            'gia_ban' => 'required|numeric',
+            'hinh_anh' => 'required|image|max:4096',
+        ]);
+
+        $imageFile = $request->file('hinh_anh');
+        $imageName = time() . '_' . preg_replace('/[^A-Za-z0-9\.\-_]/', '', $imageFile->getClientOriginalName());
+        $imageFile->storeAs('public/image', $imageName);
+
+        DB::table('san_pham')->insert([
+            'ten_san_pham' => $validated['ten_san_pham'],
+            'ten_khoa_hoc' => $validated['ten_khoa_hoc'],
+            'ten_thong_thuong' => $validated['ten_thong_thuong'],
+            'mo_ta' => $validated['mo_ta'],
+            'do_kho' => $validated['do_kho'],
+            'yeu_cau_anh_sang' => $validated['yeu_cau_anh_sang'],
+            'nhu_cau_nuoc' => $validated['nhu_cau_nuoc'],
+            'gia_ban' => $validated['gia_ban'],
+            'hinh_anh' => $imageName,
+            'status' => 1,
+        ]);
+
+        return redirect()->route('sanpham.them')->with('success', 'Sản phẩm đã được thêm thành công.');
     }
 
     public function xoaSanPham(Request $request, $id)

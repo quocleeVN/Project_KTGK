@@ -7,6 +7,8 @@ Route::get('/', [HomeController::class, 'index']);
 Route::get('caycanh/theloai/{id}', [HomeController::class, 'theloai']);
 Route::post('/timkiem', [HomeController::class, 'timkiem']);
 Route::get('quan-ly-san-pham', [HomeController::class, 'quanLySanPham']);
+Route::get('quan-ly-san-pham/them', [HomeController::class, 'themSanPham'])->name('sanpham.them');
+Route::post('quan-ly-san-pham', [HomeController::class, 'luuSanPham'])->name('sanpham.luu');
 Route::post('sanpham/xoa/{id}', [HomeController::class, 'xoaSanPham'])->name('sanpham.xoa');
 
 

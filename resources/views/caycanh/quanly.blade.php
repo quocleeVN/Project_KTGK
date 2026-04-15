@@ -14,6 +14,11 @@
         </div>
         @endif
 
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div></div>
+            <a href="{{ route('sanpham.them') }}" class="btn btn-success">Thêm</a>
+        </div>
+
         <div class="table-responsive">
             <table id="quanly-sanpham-table" class="table table-striped table-bordered" width="100%">
                 <thead>
