@@ -21,6 +21,12 @@ Route::get('/dashboard', function () {
     //return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+
+use App\Http\Controllers\Qnhu_Controller;
+
+Route::get('/login', [Qnhu_Controller::class, 'showLogin'])->name('login');
+Route::get('/register', [Qnhu_Controller::class, 'showRegister'])->name('register');
+
 Route::post('/caycanh/add-cart', [TreeController_VA::class, 'addToCart'])
     ->name('caycanh.addCart');
 Route::get('/gio-hang', [TreeController_VA::class, 'cart'])
@@ -29,5 +35,6 @@ Route::get('/gio-hang/xoa/{id}', [TreeController_VA::class, 'remove'])
     ->name('giohang.remove');
 Route::post('/gio-hang/dat-hang', [TreeController_VA::class, 'checkout'])
     ->name('giohang.checkout');
+
 
 require __DIR__ . '/auth.php';
