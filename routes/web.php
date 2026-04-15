@@ -34,6 +34,7 @@ Route::get('/gio-hang', [TreeController_VA::class, 'cart'])
 Route::get('/gio-hang/xoa/{id}', [TreeController_VA::class, 'remove'])
     ->name('giohang.remove');
 Route::post('/gio-hang/dat-hang', [TreeController_VA::class, 'checkout'])
+    ->middleware('auth')
     ->name('giohang.checkout');
 
 
