@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
 
 class HomeController extends Controller
@@ -12,6 +13,7 @@ class HomeController extends Controller
     public function index()
     {
         $sanphams = DB::table('san_pham')
+            ->where('status', 1)
             ->orderBy('id')
             ->limit(20)
             ->get();
@@ -24,6 +26,7 @@ class HomeController extends Controller
         $query = DB::table('san_pham')
             ->join('sanpham_danhmuc', 'san_pham.id', '=', 'sanpham_danhmuc.id_san_pham')
             ->where('sanpham_danhmuc.id_danh_muc', $id)
+            ->where('san_pham.status', 1)
             ->select('san_pham.*');
 
         // Xử lý filter
@@ -51,6 +54,120 @@ class HomeController extends Controller
         return view('caycanh.theloai', compact('sanphams', 'danhmuc'));
     }
 
+    public function quanLySanPham(Request $request)
+    {
+        if ($request->ajax()) {
+            $query = DB::table('san_pham')->where('status', 1);
+
+            // Handle search
+            if ($request->has('search') && !empty($request->input('search.value'))) {
+                $search = $request->input('search.value');
+                $query->where(function ($q) use ($search) {
+                    $q->where('ten_san_pham', 'like', '%' . $search . '%')
+                        ->orWhere('ten_khoa_hoc', 'like', '%' . $search . '%')
+                        ->orWhere('ten_thong_thuong', 'like', '%' . $search . '%')
+                        ->orWhere('mo_ta', 'like', '%' . $search . '%');
+                });
+            }
+
+            $totalRecords = DB::table('san_pham')->where('status', 1)->count();
+            $filteredRecords = $query->count();
+
+            // Handle ordering
+            $columns = ['ten_san_pham', 'ten_khoa_hoc', 'ten_thong_thuong', 'do_kho', 'yeu_cau_anh_sang', 'nhu_cau_nuoc', 'gia_ban', 'hinh_anh', 'id'];
+            if ($request->has('order')) {
+                $orderColumn = $request->input('order.0.column');
+                $orderDir = $request->input('order.0.dir');
+                if (isset($columns[$orderColumn])) {
+                    $query->orderBy($columns[$orderColumn], $orderDir);
+                }
+            } else {
+                $query->orderBy('id');
+            }
+
+            // Handle pagination
+            $start = $request->input('start', 0);
+            $length = $request->input('length', 10);
+            $sanphams = $query->skip($start)->take($length)->get();
+
+            $data = [];
+            foreach ($sanphams as $caycanh) {
+                $data[] = [
+                    $caycanh->ten_san_pham,
+                    $caycanh->ten_khoa_hoc,
+                    $caycanh->ten_thong_thuong,
+                    $caycanh->do_kho,
+                    $caycanh->yeu_cau_anh_sang,
+                    $caycanh->nhu_cau_nuoc,
+                    number_format($caycanh->gia_ban, 0, ',', '.'),
+                    '<img src="' . asset('storage/image/' . $caycanh->hinh_anh) . '" alt="' . $caycanh->ten_san_pham . '" style="width:60px; height:auto;">',
+                    '<a class="btn btn-sm btn-info" href="' . url('caycanh/' . $caycanh->id) . '">Xem</a> ' .
+                        '<form action="' . route('sanpham.xoa', $caycanh->id) . '" method="POST" style="display:inline;">' .
+                        '<input type="hidden" name="_token" value="' . csrf_token() . '">' .
+                        '<button type="submit" class="btn btn-sm btn-danger" onclick="return confirm(\'Bạn có chắc muốn xóa sản phẩm này không?\')">Xóa</button>' .
+                        '</form>'
+                ];
+            }
+
+            return response()->json([
+                'draw' => intval($request->input('draw')),
+                'recordsTotal' => $totalRecords,
+                'recordsFiltered' => $filteredRecords,
+                'data' => $data
+            ]);
+        }
+
+        return view('caycanh.quanly');
+    }
+
+    public function themSanPham()
+    {
+        return view('caycanh.them');
+    }
+
+    public function luuSanPham(Request $request)
+    {
+        $validated = $request->validate([
+            'ten_san_pham' => 'required|string|max:255',
+            'ten_khoa_hoc' => 'required|string|max:255',
+            'ten_thong_thuong' => 'required|string|max:255',
+            'mo_ta' => 'required|string',
+            'do_kho' => 'required|string|max:255',
+            'yeu_cau_anh_sang' => 'required|string|max:255',
+            'nhu_cau_nuoc' => 'required|string|max:255',
+            'gia_ban' => 'required|numeric',
+            'hinh_anh' => 'required|image|max:4096',
+        ]);
+
+        $imageFile = $request->file('hinh_anh');
+        $imageName = time() . '_' . preg_replace('/[^A-Za-z0-9\.\-_]/', '', $imageFile->getClientOriginalName());
+        $imageFile->storeAs('public/image', $imageName);
+
+        DB::table('san_pham')->insert([
+            'ten_san_pham' => $validated['ten_san_pham'],
+            'ten_khoa_hoc' => $validated['ten_khoa_hoc'],
+            'ten_thong_thuong' => $validated['ten_thong_thuong'],
+            'mo_ta' => $validated['mo_ta'],
+            'do_kho' => $validated['do_kho'],
+            'yeu_cau_anh_sang' => $validated['yeu_cau_anh_sang'],
+            'nhu_cau_nuoc' => $validated['nhu_cau_nuoc'],
+            'gia_ban' => $validated['gia_ban'],
+            'hinh_anh' => $imageName,
+            'status' => 1,
+        ]);
+
+        return redirect()->route('sanpham.them')->with('success', 'Sản phẩm đã được thêm thành công.');
+    }
+
+    public function xoaSanPham(Request $request, $id)
+    {
+        DB::table('san_pham')
+            ->where('id', $id)
+            ->update(['status' => 0]);
+
+        return redirect()->back()->with('success', 'Xóa sản phẩm thành công.');
+    }
+
     public function timkiem(Request $request)
     {
         $keyword = $request->input('keyword');
@@ -60,10 +177,13 @@ class HomeController extends Controller
         }
 
         $sanphams = DB::table('san_pham')
-            ->where('ten_san_pham', 'like', '%' . $keyword . '%')
-            ->orWhere('ten_khoa_hoc', 'like', '%' . $keyword . '%')
-            ->orWhere('ten_thong_thuong', 'like', '%' . $keyword . '%')
-            ->orWhere('mo_ta', 'like', '%' . $keyword . '%')
+            ->where('status', 1)
+            ->where(function ($query) use ($keyword) {
+                $query->where('ten_san_pham', 'like', '%' . $keyword . '%')
+                    ->orWhere('ten_khoa_hoc', 'like', '%' . $keyword . '%')
+                    ->orWhere('ten_thong_thuong', 'like', '%' . $keyword . '%')
+                    ->orWhere('mo_ta', 'like', '%' . $keyword . '%');
+            })
             ->get();
 
         return view('caycanh.timkiem', compact('sanphams', 'keyword'));
